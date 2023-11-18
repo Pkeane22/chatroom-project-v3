@@ -2,3 +2,54 @@ body {
 	font-family: sans-serif;
 	text-align: center;
 }
+
+
+.container {
+  padding: 16px;
+  margin: auto;
+  margin-top: 15%;
+  border: 3px solid #f1f1f1;
+  width: 30%;
+  position: center;
+  text-align: left;
+}
+
+label {
+    width: 100%;
+    text-align: left;
+}
+
+input[type=text], input[type=password] {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #04AA6D;
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+p {
+    margin: 2;
+
+}
+
+.a_container {
+    text-align: center;
+    font-size: 14;
+    margin: 0;
+
+}

@@ -1,4 +1,5 @@
-use leptos::*;
+use crate::api;
+use leptos::{*, html::Input};
 use leptos_meta::*;
 use leptos_router::*;
 
@@ -13,13 +14,15 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/leptos_start.css"/>
 
         // sets the document title
-        <Title text="Welcome to Leptos"/>
+        <Title text="Chatroom"/>
 
         // content for this welcome page
         <Router>
             <main>
                 <Routes>
                     <Route path="" view=HomePage/>
+                    <Route path="/login" view=LoginPage/>
+                    <Route path="/signup" view=SignupPage/>
                     <Route path="/*any" view=NotFound/>
                 </Routes>
             </main>
@@ -30,13 +33,55 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
+    view! {}
+}
+
+#[component]
+fn LoginPage() -> impl IntoView {
+    let login_user = create_server_action::<api::user::LoginUser>();
 
     view! {
-        <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
+        <div class="container">
+            <ActionForm action=login_user>
+                <label><b>{"Enter Username:"}</b></label>
+                <input type="text" name="username" placeholder="Username"/>
+
+                <label><b>{"Enter Password:"}</b></label>
+                <input type="text" name="password" placeholder="Password"/>
+
+                <button type="submit">{"Log In"}</button>
+            </ActionForm>
+
+            <div class="a_container">
+                <p>"Don't have an account?"</p>
+                <a href="/signup">"Sign Up"</a>
+            </div>
+        </div>
+
+    }
+}
+
+#[component]
+fn SignupPage() -> impl IntoView {
+    let signup_user = create_server_action::<api::user::SignupUser>();
+
+    view! {
+        <div class="container">
+            <ActionForm action=signup_user>
+                <label><b>{"Enter Username:"}</b></label>
+                <input type="text" name="username" placeholder="Username"/>
+
+                <label><b>{"Enter Password:"}</b></label>
+                <input type="text" name="password" placeholder="Password"/>
+
+                <button type="submit">{"Sign Up"}</button>
+            </ActionForm>
+
+            <div class="a_container">
+                <p>"Already have an account?"</p>
+                <a href="/login">"Login"</a>
+            </div>
+        </div>
     }
 }
 
