@@ -1,6 +1,4 @@
-use actix_web::middleware::Logger;
 use cfg_if::cfg_if;
-use chatroom_project_v3::api;
 use leptos::*;
 
 cfg_if! {

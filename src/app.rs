@@ -20,6 +20,7 @@ pub fn App() -> impl IntoView {
         <Router>
             <main>
                 <Routes>
+                    <Route path="/" view=HomePage/>
                     <Route path="/home" view=HomePage/>
                     <Route path="/login" view=LoginPage/>
                     <Route path="/signup" view=SignupPage/>
@@ -163,8 +164,8 @@ fn NotFound() -> impl IntoView {
     {
         // this can be done inline because it's synchronous
         // if it were async, we'd use a server function
-        //let resp = expect_context::<leptos_actix::ResponseOptions>();
-        //resp.set_status(actix_web::http::StatusCode::NOT_FOUND);
+        let resp = expect_context::<leptos_actix::ResponseOptions>();
+        resp.set_status(actix_web::http::StatusCode::NOT_FOUND);
     }
 
     view! {
