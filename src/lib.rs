@@ -1,5 +1,5 @@
-pub mod app;
 pub mod api;
+pub mod app;
 
 use cfg_if::cfg_if;
 

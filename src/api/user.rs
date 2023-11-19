@@ -69,7 +69,19 @@ pub async fn login_user(username: String, password: String) -> Result<(), Server
     .await;
 
     match result {
+        Err(error) => {
+            log::info!("Error on first query: {:#?}", error);
+            Err(ServerFnError::ServerError(
+                "Internal Server Error.".to_string(),
+            ))
+        }
         Ok(hash_password) => match bcrypt::verify(&password, &hash_password.hash_password) {
+            Err(error) => {
+                log::info!("Error on hash: {:#?}", error);
+                Err(ServerFnError::ServerError(
+                    "Internal Server Error.".to_string(),
+                ))
+            }
             Ok(false) => Err(ServerFnError::ServerError(
                 "Username or password is incorrect.".to_string(),
             )),
@@ -88,31 +100,19 @@ pub async fn login_user(username: String, password: String) -> Result<(), Server
                 .await;
 
                 match result {
-                    Ok(_) => {
-                        leptos_actix::redirect("/home");
-                        Ok(())
-                    }
                     Err(error) => {
                         log::info!("Error on second query: {:#?}", error);
                         Err(ServerFnError::ServerError(
                             "Internal Server Error.".to_string(),
                         ))
                     }
+                    Ok(_) => {
+                        leptos_actix::redirect("/home");
+                        Ok(())
+                    }
                 }
             }
-            Err(error) => {
-                log::info!("Error on hash: {:#?}", error);
-                Err(ServerFnError::ServerError(
-                    "Internal Server Error.".to_string(),
-                ))
-            }
         },
-        Err(error) => {
-            log::info!("Error on first query: {:#?}", error);
-            Err(ServerFnError::ServerError(
-                "Internal Server Error.".to_string(),
-            ))
-        }
     }
 }
 
@@ -149,11 +149,6 @@ pub async fn signup_user(
     .await;
 
     match result {
-        Ok(_) => {
-            response.set_status(StatusCode::CREATED);
-            leptos_actix::redirect("/home");
-            Ok(())
-        }
         Err(sqlx::error::Error::Database(error)) => match error.kind() {
             sqlx::error::ErrorKind::UniqueViolation => {
                 log::info!("Error: Username already exists.");
@@ -173,6 +168,11 @@ pub async fn signup_user(
             Err(ServerFnError::ServerError(
                 "Internal Server Error.".to_string(),
             ))
+        }
+        Ok(_) => {
+            response.set_status(StatusCode::CREATED);
+            leptos_actix::redirect("/home");
+            Ok(())
         }
     }
 }
