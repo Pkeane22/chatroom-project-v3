@@ -141,14 +141,14 @@ fn LoginSignupForm<T: Clone + ServerFn>(
 
 #[component]
 fn ErrorComponent(signal: RwSignal<Option<Result<(), ServerFnError>>>) -> impl IntoView {
-    {move || {
-         match signal.get() {
-             Some(Err(ServerFnError::ServerError(error))) => {
-                 view! {<p style="color:red">{error}</p>}.into_view()
-             },
-             _ => view! {}.into_view(),
-         }
-     }}
+    {
+        move || match signal.get() {
+            Some(Err(ServerFnError::ServerError(error))) => {
+                view! {<p style="color:red">{error}</p>}.into_view()
+            }
+            _ => view! {}.into_view(),
+        }
+    }
 }
 
 /// 404 - Not Found

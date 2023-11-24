@@ -1,24 +1,23 @@
 use cfg_if::cfg_if;
 use leptos::*;
 
-cfg_if! {
-if #[cfg(feature = "ssr")] {
-
-use leptos_actix::handle_server_fns;
 use actix_files::Files;
 use actix_web::*;
-use leptos_actix::{generate_route_list, LeptosRoutes};
 use chatroom_project_v3::app::*;
-use sqlx::{postgres::PgPoolOptions};
 use chatroom_project_v3::AppData;
+use leptos_actix::handle_server_fns;
+use leptos_actix::{generate_route_list, LeptosRoutes};
+use sqlx::postgres::PgPoolOptions;
+use std::io::Write;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "debug");
     std::env::set_var("RUST_BACKTRACE", "0");
-    env_logger::init();
+    init_logger();
 
-    let database_url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL variable");
+    let database_url =
+        std::env::var("DATABASE_URL").expect("missing DATABASE_URL environment variable.");
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -31,7 +30,7 @@ async fn main() -> std::io::Result<()> {
     let addr = conf.leptos_options.site_addr;
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(App);
-    println!("listening on http://{}", &addr);
+    log::info!(target: "Starting HttpServer", "listening on http://{}", &addr);
 
     HttpServer::new(move || {
         let leptos_options = &conf.leptos_options;
@@ -52,13 +51,36 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
-} else {
-    fn main() {
-//        use chatroom_project_v3::app::App;
-//
-//        _ = console_log::init_with_level(log::Level::Debug);
-//        console_error_panic_hook::set_once();
-//        mount_to_body(App);
-    }
+
+fn init_logger() {
+    env_logger::Builder::from_default_env()
+        .format(|buf, record| {
+            let level_style = buf.default_level_style(record.level());
+            let mut bracket_style = buf.style();
+            bracket_style.set_dimmed(true);
+            writeln!(
+                buf,
+                "{}{} {:5} {}:{}{} {}",
+                bracket_style.value("["),
+                chrono::Local::now().format("%H:%M:%S"),
+                level_style.value(record.level()),
+                record.module_path().unwrap_or("null"),
+                record.line().unwrap_or(0),
+                bracket_style.value("]"),
+                record.args()
+            )
+        })
+        .init();
 }
+
+//else {
+#[cfg(not(feature = "ssr"))]
+fn main() {
+    //        use chatroom_project_v3::app::App;
+    //
+    //        _ = console_log::init_with_level(log::Level::Debug);
+    //        console_error_panic_hook::set_once();
+    //        mount_to_body(App);
 }
+//}
+//}
