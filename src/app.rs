@@ -1,5 +1,15 @@
-use crate::api;
-use leptos::*;
+use std::{cell::RefCell, rc::Rc};
+
+use crate::api::{
+    self,
+    user::{Chat, Message},
+};
+use futures::{stream::SplitSink, SinkExt, StreamExt};
+use gloo_net::websocket::futures::WebSocket;
+use leptos::{
+    html::{Div, Input},
+    *,
+};
 use leptos_meta::*;
 use leptos_router::*;
 
@@ -22,6 +32,7 @@ pub fn App() -> impl IntoView {
                 <Routes>
                     <Route path="/" view=HomePage/>
                     <Route path="/home" view=HomePage/>
+                    <Route path="/chatroom" view=ChatRoomPage/>
                     <Route path="/login" view=LoginPage/>
                     <Route path="/signup" view=SignupPage/>
                     <Route path="/*any" view=NotFound/>
@@ -35,6 +46,121 @@ pub fn App() -> impl IntoView {
 #[component]
 fn HomePage() -> impl IntoView {
     view! {<p>"Home"</p>}
+}
+
+#[component]
+fn ChatRoomPage() -> impl IntoView {
+    let (chat, set_chat) = create_signal(Chat::new());
+
+    let client: Rc<RefCell<Option<SplitSink<WebSocket, gloo_net::websocket::Message>>>> =
+        Default::default();
+
+    let client_clone = client.clone();
+    create_effect(move |_| {
+        let location = web_sys::window().unwrap().location();
+        let hostname = location.hostname().expect("Failed to get hostname");
+        let id = "12345678901234567890123456789012";
+        let url = format!("ws://{}:3000/ws/chatroom/{}", hostname, id);
+
+        let connection =
+            WebSocket::open(&format!("{}", url)).expect("failed to establish websocket connection");
+
+        let (sender, mut recv) = connection.split();
+        spawn_local(async move {
+            while let Some(msg) = recv.next().await {
+                match msg {
+                    Ok(gloo_net::websocket::Message::Text(msg)) => {
+                        set_chat.update(move |c| {
+                            c.messages.push(Message {
+                                user: false,
+                                text: msg,
+                            });
+                        });
+                    }
+                    _ => {
+                        break;
+                    }
+                }
+            }
+        });
+
+        *client_clone.borrow_mut() = Some(sender);
+    });
+
+    let send = create_action(move |new_message: &String| {
+        let user_message = Message {
+            user: true,
+            text: new_message.clone(),
+        };
+        set_chat.update(move |c| {
+            c.messages.push(user_message);
+        });
+
+        let client_clone = client.clone();
+        let msg = new_message.to_string();
+        async move {
+            client_clone
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .send(gloo_net::websocket::Message::Text(format!(
+                    "{}: {}",
+                    "Username", msg
+                )))
+                .await
+                .map_err(|_| ServerFnError::ServerError("Websocket issue".to_string()))
+        }
+    });
+
+    view! {
+        <p>"Chatroom"</p>
+        <ChatArea chat/>
+        <TypeArea send/>
+    }
+}
+
+#[component]
+fn ChatArea(chat: ReadSignal<Chat>) -> impl IntoView {
+    let chat_div_ref = create_node_ref::<Div>();
+    create_effect(move |_| {
+        chat.get();
+        if let Some(div) = chat_div_ref.get() {
+            div.set_scroll_top(div.scroll_height());
+        }
+    });
+
+    view! {
+        <div node_ref=chat_div_ref>
+        {move || chat.get().messages.iter().map(move |message| {
+            let class = if message.user { "bg-blue-500 text-white" } else { "bg-zinc-700 text-white" };
+            view! {
+                <div class=class>{message.text.clone()}</div>
+            }
+        }).collect::<Vec<_>>()
+
+        }
+        </div>
+    }
+}
+
+#[component]
+fn TypeArea(send: Action<String, Result<(), ServerFnError>>) -> impl IntoView {
+    let input_ref = create_node_ref::<Input>();
+    view! {
+        <div>
+            <form on:submit=move |ev| {
+                ev.prevent_default();
+                let input = input_ref.get().expect("input doesn't exist");
+                send.dispatch(input.value());
+                input.set_value("");
+
+            }>
+                <input type="text" node_ref=input_ref/>
+                <button type="submit">"Send"</button>
+
+            </form>
+        </div>
+    }
 }
 
 #[component]

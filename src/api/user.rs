@@ -1,14 +1,15 @@
 use cfg_if::cfg_if;
 use leptos::*;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 cfg_if! {
 if #[cfg(feature = "ssr")]{
+
     use actix_web::http::StatusCode;
     use leptos_actix::ResponseOptions;
     use actix_web::{HttpRequest, web};
     use sqlx::FromRow;
-    use crate::AppData;
+    use crate::appdata::AppData;
 
     const HASH_COST: u32 = 5;
 }
@@ -47,13 +48,31 @@ struct HashPassword {
 #[cfg(feature = "ssr")]
 fn get_data() -> Result<web::Data<AppData>, ServerFnError> {
     let req = expect_context::<HttpRequest>();
+    log::debug!("{:?}", req);
     match req.app_data::<web::Data<AppData>>() {
         None => {
-            log::warn!("AppData not found.");
+            log::warn!("AppData not found");
             Err(ServerFnError::ServerError("AppData was not found.".into()))
         }
         Some(app_data) => Ok(app_data.clone()),
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Chat {
+    pub messages: Vec<Message>,
+}
+impl Chat {
+    pub fn new() -> Chat {
+        Chat { messages: Vec::<Message>::new() }
+    }
+    
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Message {
+    pub user: bool,
+    pub text: String,
 }
 
 #[server[LoginUser, "/api"]]

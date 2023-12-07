@@ -1,5 +1,6 @@
 pub mod api;
 pub mod app;
+pub mod messages;
 
 use cfg_if::cfg_if;
 
@@ -11,7 +12,6 @@ if #[cfg(feature = "hydrate")] {
     #[wasm_bindgen]
     pub fn hydrate() {
       use app::*;
-      use leptos::*;
 
       _ = console_log::init_with_level(log::Level::Debug);
       console_error_panic_hook::set_once();
@@ -22,21 +22,8 @@ if #[cfg(feature = "hydrate")] {
 }
 cfg_if! {
 if #[cfg(feature = "ssr")] {
-    use leptos::LeptosOptions;
-    use sqlx::PgPool;
+    pub mod lobby;
+pub mod appdata;
 
-    pub struct AppData {
-        leptos_options: LeptosOptions,
-        pool: PgPool,
-    }
-
-    impl AppData {
-        pub fn new(leptos_options: LeptosOptions, pool: PgPool) -> Self {
-            AppData {
-                leptos_options,
-                pool,
-            }
-        }
-}
 }
 }
