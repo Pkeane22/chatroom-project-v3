@@ -13,6 +13,16 @@ use leptos::{
 use leptos_meta::*;
 use leptos_router::*;
 
+const BUTTON_CLASS: &str = "bg-zinc-600 py-3.5 my-2 hover:opacity-80";
+const LOGIN_SIGNUP_CONTAINER_CLASS: &str = "bg-zinc-800 p-16 fixed left-1/3 w-1/3 h-fit text-white text-left"; 
+const INPUT_CLASS: &str = "text-black py-3 my-2 focus:outline-none focus:shadow-[0_0_0_2px] focus:shadow-sky-500";
+
+const CHAT_AREA_CLASS: &str = "pb-0 flex flex-col overflow-y-auto border-zinc-700 bg-zinc-900";
+
+const USER_MESSAGE_CLASS: &str = "max-w-md p-4 mb-5 rounded-lg self-end bg-blue-500 text-white";
+const OTHER_MESSAGE_CLASS: &str = "max-w-md p-4 mb-5 rounded-lg self-start bg-zinc-700 text-white";
+
+
 #[component]
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
@@ -28,7 +38,7 @@ pub fn App() -> impl IntoView {
 
         // content for this welcome page
         <Router>
-            <main>
+            <main class="bg-zinc-900 text-white h-screen w-screen">
                 <Routes>
                     <Route path="/" view=HomePage/>
                     <Route path="/home" view=HomePage/>
@@ -114,8 +124,10 @@ fn ChatRoomPage() -> impl IntoView {
 
     view! {
         <p>"Chatroom"</p>
+        <div class="m-5 absolute inset-x-0 bottom-0">
         <ChatArea chat/>
         <TypeArea send/>
+        </div>
     }
 }
 
@@ -130,9 +142,9 @@ fn ChatArea(chat: ReadSignal<Chat>) -> impl IntoView {
     });
 
     view! {
-        <div node_ref=chat_div_ref>
+        <div class=CHAT_AREA_CLASS node_ref=chat_div_ref>
         {move || chat.get().messages.iter().map(move |message| {
-            let class = if message.user { "bg-blue-500 text-white" } else { "bg-zinc-700 text-white" };
+            let class = if message.user { USER_MESSAGE_CLASS } else { OTHER_MESSAGE_CLASS };
             view! {
                 <div class=class>{message.text.clone()}</div>
             }
@@ -155,8 +167,8 @@ fn TypeArea(send: Action<String, Result<(), ServerFnError>>) -> impl IntoView {
                 input.set_value("");
 
             }>
-                <input type="text" node_ref=input_ref/>
-                <button type="submit">"Send"</button>
+                <input class="text-black py-3 my-2 focus:outline-none" type="text" node_ref=input_ref/>
+                <button class=BUTTON_CLASS type="submit">"Send"</button>
 
             </form>
         </div>
@@ -168,10 +180,12 @@ fn LoginPage() -> impl IntoView {
     let login_user = create_server_action::<api::user::LoginUser>();
 
     view! {
-        <div class="container">
+        <div class="h-1/6"/>
+        <div class=LOGIN_SIGNUP_CONTAINER_CLASS>
             <ActionForm action=login_user>
                 <label><b>{"Enter Username:"}</b>
-                    <input type="text"
+                    <input class=INPUT_CLASS 
+                        type="text"
                         name="username"
                         placeholder="Username"
                         autocomplete="username"
@@ -179,7 +193,8 @@ fn LoginPage() -> impl IntoView {
                     />
                 </label>
                 <label><b>{"Enter Password:"}</b>
-                    <input type="text"
+                    <input class=INPUT_CLASS 
+                        type="text"
                         name="password"
                         placeholder="Password"
                         autocomplete="new-password"
@@ -187,11 +202,11 @@ fn LoginPage() -> impl IntoView {
                     />
                 </label>
                 <ErrorComponent signal=login_user.value()/>
-                <button type="submit">"Login"</button>
+                <button class=BUTTON_CLASS type="submit">"Login"</button>
             </ActionForm>
-            <div class="a_container">
+            <div class="text-center text-sm">
                 <p>"Don't have an account?"</p>
-                <a href="/signup">"Sign Up"</a>
+                <a class="text-sky-500" href="/signup">"Sign Up"</a>
             </div>
         </div>
     }
@@ -202,10 +217,12 @@ fn SignupPage() -> impl IntoView {
     let signup_user = create_server_action::<api::user::SignupUser>();
 
     view! {
-        <div class="container">
+        <div class="h-1/6"/>
+        <div class=LOGIN_SIGNUP_CONTAINER_CLASS>
             <ActionForm action=signup_user>
                 <label><b>{"Enter Username:"}</b>
-                    <input type="text"
+                    <input class=INPUT_CLASS 
+                        type="text"
                         name="username"
                         placeholder="Username"
                         autocomplete="username"
@@ -213,7 +230,8 @@ fn SignupPage() -> impl IntoView {
                     />
                 </label>
                 <label><b>{"Enter Password:"}</b>
-                    <input type="text"
+                    <input class=INPUT_CLASS 
+                        type="text"
                         name="password"
                         placeholder="Password"
                         autocomplete="new-password"
@@ -221,7 +239,8 @@ fn SignupPage() -> impl IntoView {
                     />
                 </label>
                 <label><b>{"Confirm Password:"}</b>
-                    <input type="text"
+                    <input class=INPUT_CLASS 
+                        type="text"
                         name="confirm_password"
                         placeholder="Confirm Password"
                         autocomplete="new-password"
@@ -229,11 +248,11 @@ fn SignupPage() -> impl IntoView {
                     />
                 </label>
                 <ErrorComponent signal=signup_user.value()/>
-                <button type="submit">"Sign Up"</button>
+                <button class=BUTTON_CLASS type="submit">"Sign Up"</button>
             </ActionForm>
-            <div class="a_container">
+            <div class="text-center text-sm">
                 <p>"Already have an account?"</p>
-                <a href="/login">"Login"</a>
+                <a class="text-sky-500" href="/login">"Login"</a>
             </div>
         </div>
     }
