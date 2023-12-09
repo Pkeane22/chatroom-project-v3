@@ -1,6 +1,6 @@
 use actix::Addr;
 use leptos::LeptosOptions;
-use crate::lobby::Lobby;
+use crate::websocket::lobby::Lobby;
 use sqlx::PgPool;
 
 pub struct AppData {

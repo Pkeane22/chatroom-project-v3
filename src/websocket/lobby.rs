@@ -1,4 +1,4 @@
-use crate::messages::{ClientActorMessage, Connect, Disconnect, WsMessage};
+use super::messages::{ClientActorMessage, Connect, Disconnect, WsMessage};
 use actix::{Actor, Context, Handler, Recipient};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;

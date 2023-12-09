@@ -1,18 +1,19 @@
-mod app;
 mod api;
-use actix::{Addr, dev::MessageResponse};
+mod app;
+mod pages;
+
+use actix::{dev::MessageResponse, Addr};
 use actix_web::middleware::Logger;
 use cfg_if::cfg_if;
 use sqlx::PgPool;
-// cfg_if! {
-// if #[cfg(feature = "ssr")] {
+cfg_if! {
+if #[cfg(feature = "ssr")] {
 
-mod messages;
-mod start_connection;
-mod ws;
 mod appdata;
-mod lobby;
+mod websocket;
 
+use crate::appdata::AppData;
+use crate::websocket::lobby::Lobby;
 use actix::Actor;
 use actix_files::Files;
 use actix_web::*;
@@ -22,9 +23,6 @@ use leptos_actix::handle_server_fns;
 use leptos_actix::{generate_route_list, LeptosRoutes};
 use sqlx::postgres::PgPoolOptions;
 use std::io::Write;
-use crate::appdata::AppData;
-use crate::lobby::Lobby;
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -69,7 +67,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/{tail:.*}", handle_server_fns())
             .service(actix_web::web::redirect("/", "/login"))
             .service(Files::new("/pkg", format!("{site_root}/pkg")))
-            .service(actix_web::web::scope("/ws/chatroom").service(start_connection::start_connection))
+            .service(actix_web::web::scope("/ws/chatroom").service(api::chatroom::start_connection))
             .leptos_routes(leptos_options.to_owned(), routes.to_owned(), App)
             .app_data(app_data)
         //.wrap(middleware::Compress::default())
@@ -100,13 +98,13 @@ fn init_logger() {
         .init();
 }
 
-// } else {
-// fn main() {
-//     //        use chatroom_project_v3::app::App;
-//     //
-//     //        _ = console_log::init_with_level(log::Level::Debug);
-//     //        console_error_panic_hook::set_once();
-//     //        mount_to_body(App);
-// }
-// }
-// }
+} else {
+fn main() {
+    //        use chatroom_project_v3::app::App;
+    //
+    //        _ = console_log::init_with_level(log::Level::Debug);
+    //        console_error_panic_hook::set_once();
+    //        mount_to_body(App);
+}
+}
+}

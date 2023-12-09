@@ -1,5 +1,5 @@
-use crate::lobby::Lobby;
-use crate::messages::{ClientActorMessage, Connect, Disconnect, WsMessage};
+use super::lobby::Lobby;
+use super::messages::{ClientActorMessage, Connect, Disconnect, WsMessage};
 use actix::{
     fut, Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, ContextFutureSpawner, Handler,
     Running, StreamHandler, WrapFuture,
