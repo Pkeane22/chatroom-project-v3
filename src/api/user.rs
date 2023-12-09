@@ -4,7 +4,6 @@ use serde::{Serialize, Deserialize};
 
 cfg_if! {
 if #[cfg(feature = "ssr")]{
-
     use actix_web::http::StatusCode;
     use leptos_actix::ResponseOptions;
     use actix_web::{HttpRequest, web};

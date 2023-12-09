@@ -1,15 +1,17 @@
+mod app;
+mod api;
 use actix::{Addr, dev::MessageResponse};
 use actix_web::middleware::Logger;
 use cfg_if::cfg_if;
 use sqlx::PgPool;
-cfg_if! {
-if #[cfg(feature = "ssr")] {
+// cfg_if! {
+// if #[cfg(feature = "ssr")] {
 
-mod lobby;
 mod messages;
 mod start_connection;
 mod ws;
-pub mod appdata;
+mod appdata;
+mod lobby;
 
 use actix::Actor;
 use actix_files::Files;
@@ -57,6 +59,10 @@ async fn main() -> std::io::Result<()> {
             pool.clone(),
             chat_server.clone(),
         ));
+        // let app_data = web::Data::new(AppData2::new(
+        //     leptos_options.to_owned(),
+        //     pool.clone(),
+        // ));
 
         App::new()
             .wrap(logger)
@@ -94,13 +100,13 @@ fn init_logger() {
         .init();
 }
 
-} else {
-fn main() {
-    //        use chatroom_project_v3::app::App;
-    //
-    //        _ = console_log::init_with_level(log::Level::Debug);
-    //        console_error_panic_hook::set_once();
-    //        mount_to_body(App);
-}
-}
-}
+// } else {
+// fn main() {
+//     //        use chatroom_project_v3::app::App;
+//     //
+//     //        _ = console_log::init_with_level(log::Level::Debug);
+//     //        console_error_panic_hook::set_once();
+//     //        mount_to_body(App);
+// }
+// }
+// }
