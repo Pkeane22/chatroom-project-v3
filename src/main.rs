@@ -2,10 +2,8 @@ mod api;
 mod app;
 mod pages;
 
-use actix::{dev::MessageResponse, Addr};
 use actix_web::middleware::Logger;
 use cfg_if::cfg_if;
-use sqlx::PgPool;
 cfg_if! {
 if #[cfg(feature = "ssr")] {
 

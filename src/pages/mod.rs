@@ -8,15 +8,22 @@ use crate::api::{
     self,
     user::{Chat, Message},
 };
+use cfg_if::cfg_if;
 use futures::{stream::SplitSink, SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
 use leptos::{
     html::{Div, Input},
     *,
 };
-use leptos_meta::*;
 use leptos_router::*;
 use std::{cell::RefCell, rc::Rc};
+
+cfg_if! {
+if #[cfg(feature = "ssr")]{
+
+
+}
+}
 
 const BUTTON_CLASS: &str = "bg-zinc-600 py-3.5 my-2 hover:opacity-80";
 const LOGIN_SIGNUP_CONTAINER_CLASS: &str =

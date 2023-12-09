@@ -3,16 +3,16 @@ pub mod user;
 use cfg_if::cfg_if;
 use leptos::*;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 cfg_if! {
 if #[cfg(feature = "ssr")]{
     pub mod chatroom;
 
-    use actix_web::{HttpRequest, web};
+    use actix_web::{web, HttpRequest};
+    use uuid::Uuid;
 
     use crate::appdata::AppData;
-}
+    }
 }
 
 #[cfg(feature = "ssr")]

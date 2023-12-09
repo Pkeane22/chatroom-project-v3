@@ -1,21 +1,10 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crate::pages::chatroom::ChatRoomPage;
 use crate::pages::home::HomePage;
 use crate::pages::login::LoginPage;
 use crate::pages::notfound::NotFound;
 use crate::pages::signup::SignupPage;
 
-use crate::api::{
-    self,
-    user::{Chat, Message},
-};
-use futures::{stream::SplitSink, SinkExt, StreamExt};
-use gloo_net::websocket::futures::WebSocket;
-use leptos::{
-    html::{Div, Input},
-    *,
-};
+use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
