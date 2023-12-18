@@ -1,17 +1,33 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::pages::chatroom::ChatRoomPage;
 use crate::pages::home::HomePage;
 use crate::pages::login::LoginPage;
 use crate::pages::notfound::NotFound;
 use crate::pages::signup::SignupPage;
 
+use futures::stream::SplitSink;
+use gloo_net::websocket::futures::WebSocket;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+use uuid::Uuid;
 
 #[component]
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
+
+    let id_signal = create_rw_signal(Uuid::nil());
+    let client: Rc<RefCell<Option<SplitSink<WebSocket, gloo_net::websocket::Message>>>> =
+        Default::default();
+    let (rx, tx) = create_signal("".to_owned());
+
+    provide_context(client.clone());
+    provide_context(id_signal);
+    provide_context(rx);
+    provide_context(tx);
 
     view! {
         // injects a stylesheet into the document <head>

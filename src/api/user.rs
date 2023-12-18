@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+
 use super::*;
 
 cfg_if! {
@@ -5,6 +8,7 @@ if #[cfg(feature = "ssr")]{
     use actix_web::http::StatusCode;
     use leptos_actix::ResponseOptions;
     use sqlx::FromRow;
+    use crate::websocket::messages::Switch;
 
     const HASH_COST: u32 = 5;
 }
@@ -56,6 +60,34 @@ impl Chat {
 pub struct Message {
     pub user: bool,
     pub text: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Rooms {
+    pub rooms: HashMap::<Uuid, usize>,
+}
+impl Rooms {
+    pub fn new() -> Rooms { 
+        Rooms { 
+            rooms: HashMap::<Uuid, usize>::new(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Room {
+    pub room_id: Uuid,
+    pub members: usize,
+}
+
+impl Room {
+    pub fn json_from_values(room_id: Uuid, members: usize) -> String {
+        let room = Room { 
+            room_id,
+            members,
+        };
+        serde_json::to_string(&room).unwrap()
+    }
 }
 
 #[server[LoginUser, "/api"]]
@@ -188,4 +220,17 @@ pub async fn signup_user(
             Ok(())
         }
     }
+}
+
+#[server(JoinRoom, "/api")]
+pub async fn join_room(id: Uuid, old_room_id: Uuid, new_room_id: Uuid) -> Result<(), ServerFnError> {
+    let data = get_data()?;
+
+    data.lobby_addr.do_send(Switch {
+        id,
+        username: "username".to_owned(),
+        old_room_id,
+        new_room_id,
+    });
+    Ok(())
 }

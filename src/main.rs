@@ -3,9 +3,9 @@ mod app;
 mod pages;
 
 use actix_web::middleware::Logger;
-use cfg_if::cfg_if;
-cfg_if! {
-if #[cfg(feature = "ssr")] {
+// use cfg_if::cfg_if;
+// cfg_if! {
+// if #[cfg(feature = "ssr")] {
 
 mod appdata;
 mod websocket;
@@ -24,6 +24,7 @@ use std::io::Write;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv::dotenv().ok();
     std::env::set_var("RUST_LOG", "debug");
     std::env::set_var("RUST_BACKTRACE", "0");
     init_logger();
@@ -38,7 +39,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     sqlx::migrate!("./migrations").run(&pool).await.unwrap();
 
-    let chat_server = Lobby::default().start();
+    let lobby_addr = Lobby::default().start();
 
     let conf = get_configuration(None).await.unwrap();
     let addr = conf.leptos_options.site_addr;
@@ -49,11 +50,11 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         let leptos_options = &conf.leptos_options;
         let site_root = &leptos_options.site_root;
-        let logger = Logger::default();
+        // let logger = Logger::default();
         let app_data = web::Data::new(AppData::new(
             leptos_options.to_owned(),
             pool.clone(),
-            chat_server.clone(),
+            lobby_addr.clone(),
         ));
         // let app_data = web::Data::new(AppData2::new(
         //     leptos_options.to_owned(),
@@ -61,7 +62,7 @@ async fn main() -> std::io::Result<()> {
         // ));
 
         App::new()
-            .wrap(logger)
+            // .wrap(logger)
             .route("/api/{tail:.*}", handle_server_fns())
             .service(actix_web::web::redirect("/", "/login"))
             .service(Files::new("/pkg", format!("{site_root}/pkg")))
@@ -96,13 +97,13 @@ fn init_logger() {
         .init();
 }
 
-} else {
-fn main() {
-    //        use chatroom_project_v3::app::App;
-    //
-    //        _ = console_log::init_with_level(log::Level::Debug);
-    //        console_error_panic_hook::set_once();
-    //        mount_to_body(App);
-}
-}
-}
+// } else {
+// fn main() {
+//     //        use chatroom_project_v3::app::App;
+//     //
+//     //        _ = console_log::init_with_level(log::Level::Debug);
+//     //        console_error_panic_hook::set_once();
+//     //        mount_to_body(App);
+// }
+// }
+// }

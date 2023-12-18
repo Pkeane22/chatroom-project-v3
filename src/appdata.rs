@@ -6,15 +6,15 @@ use sqlx::PgPool;
 pub struct AppData {
     pub leptos_options: LeptosOptions,
     pub pool: PgPool,
-    pub chat_server: Addr<Lobby>,
+    pub lobby_addr: Addr<Lobby>,
 }
 
 impl AppData {
-    pub fn new(leptos_options: LeptosOptions, pool: PgPool, chat_server: Addr<Lobby>) -> Self {
+    pub fn new(leptos_options: LeptosOptions, pool: PgPool, lobby_addr: Addr<Lobby>) -> Self {
         AppData {
             leptos_options,
             pool,
-            chat_server,
+            lobby_addr,
         }
     }
 }

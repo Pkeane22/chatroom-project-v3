@@ -1,31 +1,78 @@
-use super::messages::{ClientActorMessage, Connect, Disconnect, WsMessage};
-use actix::{Actor, Context, Handler, Recipient};
-use std::collections::{HashMap, HashSet};
-use uuid::Uuid;
+use crate::{api::user::Room, websocket::messages::ChangeRoom};
 
-type Socket = Recipient<WsMessage>;
+use super::{messages::Switch, *, ws::WsConn};
+use actix::{Actor, Context, Handler, Recipient, Addr};
+use messages::{ClientActorMessage, Connect, Disconnect, WsMessage};
+use std::collections::{HashMap, HashSet};
 
 pub struct Lobby {
-    sessions: HashMap<Uuid, Socket>,
+    sessions: HashMap<Uuid, Addr<WsConn>>,
     rooms: HashMap<Uuid, HashSet<Uuid>>,
 }
 
 impl Default for Lobby {
     fn default() -> Lobby {
+        let mut rooms = HashMap::new();
+        rooms.insert(Uuid::nil(), HashSet::new());
         Lobby {
             sessions: HashMap::new(),
-            rooms: HashMap::new(),
+            rooms,
         }
     }
 }
 
 impl Lobby {
-    fn send_message(&self, message: &str, id_to: &Uuid) {
+    fn send_message_to_client(&self, message: &str, id_to: &Uuid) {
         if let Some(socket_recipient) = self.sessions.get(id_to) {
             let _ = socket_recipient.do_send(WsMessage(message.to_owned()));
         } else {
-            println!("attempting to send message but couldn't find user id.");
+            log::debug!("attempting to send message but couldn't find user id.");
         }
+    }
+
+    fn send_message_to_room(&self, msg: &str, room_id: &Uuid, id: &Uuid) {
+        self.rooms
+            .get(room_id)
+            .unwrap()
+            .iter()
+            .filter(|conn_id| conn_id.to_owned() != id)
+            .for_each(|client_id| self.send_message_to_client(msg, client_id));
+    }
+
+    fn remove_client_from_room(&mut self, room_id: &Uuid, id: &Uuid) {
+        if let Some(lobby) = self.rooms.get_mut(room_id) {
+            if lobby.len() > 1 {
+                lobby.remove(id);
+            } else if room_id != &HOME_ROOM_ID {
+                self.rooms.remove(room_id);
+            } else {
+                lobby.remove(id);
+            }
+        }
+    }
+
+    fn add_client_to_room(&mut self, room_id: Uuid, id: Uuid) {
+        self.rooms
+            .entry(room_id)
+            .or_insert(HashSet::new())
+            .insert(id);
+    }
+
+    fn send_updated_room_info(&self, room_id: &Uuid) {
+        let members = self.rooms.get(room_id).unwrap_or(&HashSet::default()).len();
+        let msg = Room::json_from_values(room_id.to_owned(), members);
+        self.rooms
+            .get(&HOME_ROOM_ID)
+            .unwrap_or(&HashSet::default())
+            .iter()
+            .for_each(|client_id| self.send_message_to_client(&msg, client_id));
+    }
+
+    fn send_room_info_to_client(&self, client_id: &Uuid) {
+        self.rooms.iter().for_each(|entry| {
+            let msg = Room::json_from_values(entry.0.to_owned(), entry.1.len());
+            self.send_message_to_client(&msg, client_id)
+        })
     }
 }
 
@@ -38,21 +85,13 @@ impl Handler<Disconnect> for Lobby {
 
     fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) {
         if self.sessions.remove(&msg.id).is_some() {
-            self.rooms
-                .get(&msg.room_id)
-                .unwrap()
-                .iter()
-                .filter(|conn_id| *conn_id.to_owned() != msg.id)
-                .for_each(|user_id| {
-                    self.send_message(&format!("{} disconnected.", &msg.id), &user_id)
-                });
-            if let Some(lobby) = self.rooms.get_mut(&msg.room_id) {
-                if lobby.len() > 1 {
-                    lobby.remove(&msg.id);
-                } else {
-                    self.rooms.remove(&msg.room_id);
-                }
-            }
+            self.send_message_to_room(
+                &format!("{} disconnected.", &msg.username),
+                &msg.room_id,
+                &msg.id,
+            );
+            self.remove_client_from_room(&msg.room_id, &msg.id);
+            self.send_updated_room_info(&msg.room_id);
         }
     }
 }
@@ -61,22 +100,39 @@ impl Handler<Connect> for Lobby {
     type Result = ();
 
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) {
-        self.rooms
-            .entry(msg.lobby_id)
-            .or_insert(HashSet::new())
-            .insert(msg.self_id);
+        self.sessions.insert(msg.id, msg.addr);
+        self.add_client_to_room(HOME_ROOM_ID, msg.id);
+        self.send_message_to_client(&format!("{}", msg.id), &msg.id);
+        self.send_updated_room_info(&HOME_ROOM_ID);
+        self.send_room_info_to_client(&msg.id);
+    }
+}
 
-        self.rooms
-            .get(&msg.lobby_id)
-            .unwrap()
-            .iter()
-            .filter(|conn_id| *conn_id.to_owned() != msg.self_id)
-            .for_each(|conn_id| {
-                self.send_message(&format!("{} just joined.", msg.self_id), conn_id)
-            });
-        self.sessions.insert(msg.self_id, msg.addr);
+impl Handler<Switch> for Lobby {
+    type Result = ();
 
-        self.send_message(&format!("your id is {}", msg.self_id), &msg.self_id)
+    fn handle(&mut self, msg: Switch, _: &mut Self::Context) {
+        self.remove_client_from_room(&msg.old_room_id, &msg.id);
+        self.add_client_to_room(msg.new_room_id, msg.id);
+        if let Some(socket_recipient) = self.sessions.get(&msg.id) {
+            let _ = socket_recipient.do_send(ChangeRoom(msg.new_room_id));
+        }
+
+        self.send_updated_room_info(&msg.old_room_id);
+        self.send_updated_room_info(&msg.new_room_id);
+        if msg.id != HOME_ROOM_ID {
+            self.send_message_to_room(
+                &format!("{} left the room.", &msg.username),
+                &msg.old_room_id,
+                &msg.id,
+            );
+        }
+        self.send_message_to_room(
+            &format!("{} just joined", &msg.username),
+            &msg.new_room_id,
+            &msg.id,
+        );
+        self.send_message_to_client(&format!("your id is {}", msg.id), &msg.id);
     }
 }
 
@@ -88,16 +144,14 @@ impl Handler<ClientActorMessage> for Lobby {
         if msg.msg.starts_with("\\w") {
             log::debug!("{:?}", msg.msg);
             if let Some(id_to) = msg.msg.split(' ').nth(1) {
-                self.send_message(&msg.msg, &Uuid::parse_str(id_to).unwrap());
+                self.send_message_to_client(&msg.msg, &Uuid::parse_str(id_to).unwrap());
             }
         } else {
-            log::debug!("{:?}", msg.msg);
-            self.rooms
-                .get(&msg.room_id)
-                .unwrap()
-                .iter()
-                .for_each(|client| self.send_message(&format!("{}", &msg.msg), client));
-            log::debug!("{:?}", msg.msg);
+            self.send_message_to_room(
+                &format!("{}: {}", &msg.username, &msg.msg),
+                &msg.room_id,
+                &msg.id,
+            );
         }
     }
 }

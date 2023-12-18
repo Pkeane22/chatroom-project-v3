@@ -21,7 +21,12 @@ leptos_router = { version = "0.5", features = ["nightly"] }
 wasm-bindgen = "0.2.88"
 serde = { version = "1.0.192", features = ["derive"] }
 log = "0.4.20"
-sqlx = { version = "0.7.2", optional = true, features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+sqlx = { version = "0.7.2", optional = true, features = [
+    "runtime-tokio",
+    "postgres",
+    "uuid",
+    "chrono",
+] }
 env_logger = "0.10.1"
 uuid = { version = "1.5.0", features = ["v4", "serde"] }
 bcrypt = { version = "0.15.0", optional = true }
@@ -31,10 +36,16 @@ actix = { version = "0.13.1", optional = true }
 gloo-net = "0.4.0"
 futures = { version = "0.3.29" }
 web-sys = "0.3.65"
+dotenv = { version = "0.15.0", optional = true }
 
 [features]
 csr = ["leptos/csr", "leptos_meta/csr", "leptos_router/csr"]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate", "gloo-net/websocket"]
+hydrate = [
+    "leptos/hydrate",
+    "leptos_meta/hydrate",
+    "leptos_router/hydrate",
+    "gloo-net/websocket",
+]
 ssr = [
     "dep:actix",
     "dep:actix-files",
@@ -43,10 +54,12 @@ ssr = [
     "dep:leptos_actix",
     "dep:sqlx",
     "dep:bcrypt",
+    "dep:dotenv",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
 ]
+dotenv = ["dep:dotenv"]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]

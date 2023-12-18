@@ -31,7 +31,7 @@ pub fn LoginPage() -> impl IntoView {
             </ActionForm>
             <div class="text-center text-sm">
                 <p>"Don't have an account?"</p>
-                <a class="text-sky-500" href="/signup">"Sign Up"</a>
+                <A class="text-sky-500" href="/signup">"Sign Up"</A>
             </div>
         </div>
     }

@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 use super::*;
 const CHAT_AREA_CLASS: &str = "pb-0 flex flex-col overflow-y-auto border-zinc-700 bg-zinc-900";
 
@@ -6,41 +8,20 @@ const OTHER_MESSAGE_CLASS: &str = "max-w-md p-4 mb-5 rounded-lg self-start bg-zi
 
 #[component]
 pub fn ChatRoomPage() -> impl IntoView {
+    let (id, _) = expect_context::<RwSignal<Uuid>>().split();
+    let client = expect_context::<Rc<RefCell<Option<SplitSink<WebSocket, gloo_net::websocket::Message>>>>>();
+    let rx = expect_context::<ReadSignal<String>>();
     let (chat, set_chat) = create_signal(Chat::new());
 
-    let client: Rc<RefCell<Option<SplitSink<WebSocket, gloo_net::websocket::Message>>>> =
-        Default::default();
 
-    let client_clone = client.clone();
     create_effect(move |_| {
-        let location = web_sys::window().unwrap().location();
-        let hostname = location.hostname().expect("Failed to get hostname");
-        let id = "12345678901234567890123456789012";
-        let url = format!("ws://{}:3000/ws/chatroom/{}", hostname, id);
-
-        let connection =
-            WebSocket::open(&format!("{}", url)).expect("failed to establish websocket connection");
-
-        let (sender, mut recv) = connection.split();
-        spawn_local(async move {
-            while let Some(msg) = recv.next().await {
-                match msg {
-                    Ok(gloo_net::websocket::Message::Text(msg)) => {
-                        set_chat.update(move |c| {
-                            c.messages.push(Message {
-                                user: false,
-                                text: msg,
-                            });
-                        });
-                    }
-                    _ => {
-                        break;
-                    }
-                }
-            }
+        let msg = rx.get();
+        set_chat.update(move |c| {
+            c.messages.push(Message {
+                user: false,
+                text: msg,
+            });
         });
-
-        *client_clone.borrow_mut() = Some(sender);
     });
 
     let send = create_action(move |new_message: &String| {
@@ -59,10 +40,7 @@ pub fn ChatRoomPage() -> impl IntoView {
                 .borrow_mut()
                 .as_mut()
                 .unwrap()
-                .send(gloo_net::websocket::Message::Text(format!(
-                    "{}: {}",
-                    "Username", msg
-                )))
+                .send(gloo_net::websocket::Message::Text(format!("{}", msg)))
                 .await
                 .map_err(|_| ServerFnError::ServerError("Websocket issue".to_string()))
         }

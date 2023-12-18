@@ -5,15 +5,15 @@ use actix_web_actors::ws;
 
 use crate::websocket::ws::WsConn;
 
-#[get("/{group_id}")]
+#[get("/{username}")]
 pub async fn start_connection(
     req: HttpRequest,
     stream: web::Payload,
-    group_id: web::Path<Uuid>,
+    username: web::Path<String>,
     data: web::Data<AppData>,
 ) -> Result<HttpResponse, Error> {
-    let srv = &data.into_inner().chat_server;
-    let ws = WsConn::new(group_id.into_inner(), srv.clone());
+    let lobby_addr = &data.into_inner().lobby_addr;
+    let ws = WsConn::new(Uuid::nil(), lobby_addr.clone(), username.into_inner());
 
     match ws::start(ws, &req, stream) {
         Err(resp) => {
