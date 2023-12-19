@@ -2,13 +2,14 @@ mod api;
 mod app;
 mod pages;
 
-use actix_web::middleware::Logger;
+// use actix_web::middleware::Logger;
 // use cfg_if::cfg_if;
 // cfg_if! {
 // if #[cfg(feature = "ssr")] {
 
 mod appdata;
 mod websocket;
+const HOME_ROOM_ID: uuid::Uuid = uuid::Uuid::nil();
 
 use crate::appdata::AppData;
 use crate::websocket::lobby::Lobby;

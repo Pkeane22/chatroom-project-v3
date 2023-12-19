@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-
 use super::*;
 
 cfg_if! {
@@ -64,11 +63,11 @@ pub struct Message {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Rooms {
-    pub rooms: HashMap::<Uuid, usize>,
+    pub rooms: HashMap<Uuid, usize>,
 }
 impl Rooms {
-    pub fn new() -> Rooms { 
-        Rooms { 
+    pub fn new() -> Rooms {
+        Rooms {
             rooms: HashMap::<Uuid, usize>::new(),
         }
     }
@@ -82,16 +81,13 @@ pub struct Room {
 
 impl Room {
     pub fn json_from_values(room_id: Uuid, members: usize) -> String {
-        let room = Room { 
-            room_id,
-            members,
-        };
+        let room = Room { room_id, members };
         serde_json::to_string(&room).unwrap()
     }
 }
 
 #[server[LoginUser, "/api"]]
-pub async fn login_user(username: String, password: String) -> Result<(), ServerFnError> {
+pub async fn login_user(username: String, password: String) -> Result<String, ServerFnError> {
     let data = get_data()?;
 
     let result = sqlx::query_as::<_, HashPassword>(
@@ -147,8 +143,8 @@ pub async fn login_user(username: String, password: String) -> Result<(), Server
                     }
                     Ok(_) => {
                         log::info!("User successfully logged in.");
-                        leptos_actix::redirect("/home");
-                        Ok(())
+                        // leptos_actix::redirect("/home");
+                        Ok(username)
                     }
                 }
             }
@@ -161,7 +157,7 @@ pub async fn signup_user(
     username: String,
     password: String,
     confirm_password: String,
-) -> Result<(), ServerFnError> {
+) -> Result<String, ServerFnError> {
     if password != confirm_password {
         return Err(ServerFnError::ServerError(
             "Passwords do not match.".to_string(),
@@ -216,15 +212,20 @@ pub async fn signup_user(
         Ok(_) => {
             log::info!("User {} successfully created.", &user.username);
             response.set_status(StatusCode::CREATED);
-            leptos_actix::redirect("/home");
-            Ok(())
+            // leptos_actix::redirect("/home");
+            Ok(user.username)
         }
     }
 }
 
 #[server(JoinRoom, "/api")]
-pub async fn join_room(id: Uuid, old_room_id: Uuid, new_room_id: Uuid) -> Result<(), ServerFnError> {
+pub async fn join_room(
+    id: Uuid,
+    old_room_id: Uuid,
+    new_room_id: Uuid,
+) -> Result<(), ServerFnError> {
     let data = get_data()?;
+    log::trace!("JoinRoom id: {}", id);
 
     data.lobby_addr.do_send(Switch {
         id,

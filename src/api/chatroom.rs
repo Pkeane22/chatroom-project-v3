@@ -21,7 +21,7 @@ pub async fn start_connection(
             Err(resp)
         }
         Ok(resp) => {
-            log::debug!("Ok: {:?}", resp);
+            log::trace!("Ok: {:?}", resp);
             Ok(resp)
         }
     }

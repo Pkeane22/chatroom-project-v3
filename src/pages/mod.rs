@@ -1,13 +1,13 @@
 pub mod chatroom;
 pub mod home;
-pub mod login;
+pub mod loginsignup;
 pub mod notfound;
-pub mod signup;
 
 use crate::api::{
     self,
     user::{Chat, Message},
 };
+use crate::HOME_ROOM_ID;
 use cfg_if::cfg_if;
 use futures::{stream::SplitSink, SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
@@ -32,7 +32,7 @@ const INPUT_CLASS: &str =
     "text-black py-3 my-2 focus:outline-none focus:shadow-[0_0_0_2px] focus:shadow-sky-500";
 
 #[component]
-fn ErrorComponent(signal: RwSignal<Option<Result<(), ServerFnError>>>) -> impl IntoView {
+fn ErrorComponent(signal: RwSignal<Option<Result<String, ServerFnError>>>) -> impl IntoView {
     {
         move || match signal.get() {
             Some(Err(ServerFnError::ServerError(error))) => {

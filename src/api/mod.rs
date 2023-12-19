@@ -18,7 +18,7 @@ if #[cfg(feature = "ssr")]{
 #[cfg(feature = "ssr")]
 fn get_data() -> Result<web::Data<AppData>, ServerFnError> {
     let req = expect_context::<HttpRequest>();
-    log::debug!("{:?}", req);
+    log::trace!("{:?}", req);
     match req.app_data::<web::Data<AppData>>() {
         None => {
             log::warn!("AppData not found");

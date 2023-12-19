@@ -1,5 +1,5 @@
 use super::{*, ws::WsConn};
-use actix::{Message, Recipient, Addr};
+use actix::{Message, Addr};
 
 #[derive(Message)]
 #[rtype(result = "()")]

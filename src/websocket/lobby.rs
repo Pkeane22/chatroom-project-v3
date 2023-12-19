@@ -1,7 +1,8 @@
 use crate::{api::user::Room, websocket::messages::ChangeRoom};
 
 use super::{messages::Switch, *, ws::WsConn};
-use actix::{Actor, Context, Handler, Recipient, Addr};
+
+use actix::{Actor, Context, Handler, Addr};
 use messages::{ClientActorMessage, Connect, Disconnect, WsMessage};
 use std::collections::{HashMap, HashSet};
 
@@ -23,10 +24,11 @@ impl Default for Lobby {
 
 impl Lobby {
     fn send_message_to_client(&self, message: &str, id_to: &Uuid) {
+        log::trace!("Sending {} to {}", message, id_to);
         if let Some(socket_recipient) = self.sessions.get(id_to) {
             let _ = socket_recipient.do_send(WsMessage(message.to_owned()));
         } else {
-            log::debug!("attempting to send message but couldn't find user id.");
+            log::debug!("attempting to send message but couldn't find user id: {}", id_to);
         }
     }
 
@@ -49,6 +51,9 @@ impl Lobby {
                 lobby.remove(id);
             }
         }
+        log::trace!("Removing {} from {}", id, room_id);
+        log::trace!("Sending to {:?}", self.rooms.get(&HOME_ROOM_ID).unwrap());
+        self.send_updated_room_info(room_id);
     }
 
     fn add_client_to_room(&mut self, room_id: Uuid, id: Uuid) {
@@ -56,6 +61,8 @@ impl Lobby {
             .entry(room_id)
             .or_insert(HashSet::new())
             .insert(id);
+        log::trace!("Adding {} to {}", id, room_id);
+        self.send_updated_room_info(&room_id);
     }
 
     fn send_updated_room_info(&self, room_id: &Uuid) {
@@ -91,7 +98,6 @@ impl Handler<Disconnect> for Lobby {
                 &msg.id,
             );
             self.remove_client_from_room(&msg.room_id, &msg.id);
-            self.send_updated_room_info(&msg.room_id);
         }
     }
 }
@@ -101,9 +107,8 @@ impl Handler<Connect> for Lobby {
 
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) {
         self.sessions.insert(msg.id, msg.addr);
-        self.add_client_to_room(HOME_ROOM_ID, msg.id);
         self.send_message_to_client(&format!("{}", msg.id), &msg.id);
-        self.send_updated_room_info(&HOME_ROOM_ID);
+        self.add_client_to_room(HOME_ROOM_ID, msg.id);
         self.send_room_info_to_client(&msg.id);
     }
 }
@@ -112,14 +117,13 @@ impl Handler<Switch> for Lobby {
     type Result = ();
 
     fn handle(&mut self, msg: Switch, _: &mut Self::Context) {
+        log::trace!("Switch id: {:?}", msg.id);
         self.remove_client_from_room(&msg.old_room_id, &msg.id);
         self.add_client_to_room(msg.new_room_id, msg.id);
         if let Some(socket_recipient) = self.sessions.get(&msg.id) {
             let _ = socket_recipient.do_send(ChangeRoom(msg.new_room_id));
         }
 
-        self.send_updated_room_info(&msg.old_room_id);
-        self.send_updated_room_info(&msg.new_room_id);
         if msg.id != HOME_ROOM_ID {
             self.send_message_to_room(
                 &format!("{} left the room.", &msg.username),
@@ -142,7 +146,7 @@ impl Handler<ClientActorMessage> for Lobby {
     fn handle(&mut self, msg: ClientActorMessage, _: &mut Self::Context) {
         log::debug!("{:?}", msg.msg);
         if msg.msg.starts_with("\\w") {
-            log::debug!("{:?}", msg.msg);
+            log::debug!("Wisper: {:?}", msg.msg);
             if let Some(id_to) = msg.msg.split(' ').nth(1) {
                 self.send_message_to_client(&msg.msg, &Uuid::parse_str(id_to).unwrap());
             }

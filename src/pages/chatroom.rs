@@ -8,20 +8,22 @@ const OTHER_MESSAGE_CLASS: &str = "max-w-md p-4 mb-5 rounded-lg self-start bg-zi
 
 #[component]
 pub fn ChatRoomPage() -> impl IntoView {
-    let (id, _) = expect_context::<RwSignal<Uuid>>().split();
-    let client = expect_context::<Rc<RefCell<Option<SplitSink<WebSocket, gloo_net::websocket::Message>>>>>();
+    let (_id, _) = expect_context::<RwSignal<Uuid>>().split();
+    let client =
+        expect_context::<Rc<RefCell<Option<SplitSink<WebSocket, gloo_net::websocket::Message>>>>>();
     let rx = expect_context::<ReadSignal<String>>();
     let (chat, set_chat) = create_signal(Chat::new());
 
-
     create_effect(move |_| {
         let msg = rx.get();
-        set_chat.update(move |c| {
-            c.messages.push(Message {
-                user: false,
-                text: msg,
+        if !msg.is_empty() {
+            set_chat.update(move |c| {
+                c.messages.push(Message {
+                    user: false,
+                    text: msg,
+                });
             });
-        });
+        }
     });
 
     let send = create_action(move |new_message: &String| {

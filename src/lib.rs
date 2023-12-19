@@ -2,7 +2,10 @@ pub mod api;
 pub mod app;
 pub mod pages;
 
+const HOME_ROOM_ID: Uuid = Uuid::nil();
+
 use cfg_if::cfg_if;
+use uuid::Uuid;
 
 cfg_if! {
 if #[cfg(feature = "hydrate")] {
